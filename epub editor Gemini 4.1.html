@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محرر EPUB المتقدم 📚 (V4.2 - النهائي)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        /* (Style remains unchanged - as requested) */
+        :root { --primary: #10b981; /* لون أخضر */ --bg: #f3f4f6; --card: #ffffff; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: #1f2937; margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+        .container { 
+            background-color: var(--card); 
+            padding: 2.5rem; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); 
+            width: 100%; 
+            max-width: 700px;
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h1 { 
+            text-align: center; 
+            color: var(--primary); 
+            margin-bottom: 2rem; 
+            font-size: 2rem;
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 10px;
+        }
+        .section { 
+            margin-bottom: 1.5rem; 
+            padding-bottom: 1.5rem; 
+            border-bottom: 1px solid #e5e7eb; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 0.5rem; 
+            font-weight: 700; 
+            color: #1f2937; 
+            font-size: 1.1rem;
+        }
+        input[type="text"], input[type="file"] { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #d1d5db; 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            margin-bottom: 10px; 
+            transition: border-color 0.3s; 
+            background-color: #ffffff;
+        }
+        input[type="text"]:focus, input[type="file"]:focus { 
+            border-color: var(--primary); 
+            outline: none; 
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); 
+        }
+        button { 
+            background-color: var(--primary); 
+            color: white; 
+            padding: 15px; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 1.1rem; 
+            cursor: pointer; 
+            transition: background 0.3s, transform 0.1s; 
+            width: 100%; 
+            font-weight: bold; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        button:hover { background-color: #059669; }
+        button:active { transform: scale(0.98); }
+        button:disabled { background-color: #9ca3af; cursor: not-allowed; }
+        .status { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border-radius: 8px; 
+            text-align: center; 
+            display: none; 
+            font-weight: 600; 
+            border: 1px solid;
+        }
+        .success { background-color: #d1fae5; color: #065f46; border-color: #34d399; }
+        .error { background-color: #fee2e2; color: #991b1b; border-color: #f87171; }
+        .info { font-size: 0.9rem; color: #6b7280; margin-top: -5px; margin-bottom: 10px; padding: 5px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>محرر EPUB المتقدم 📚</h1>
+    <p class="info" style="text-align: center; font-size: 1rem; color: var(--primary);">أداة ذكية لتعديل بيانات، غلاف، وخطوط أي كتاب EPUB.</p>
+
+    <div class="section">
+        <label for="epubFile">1. اختر ملف الكتاب (EPUB) للتحرير</label>
+        <input type="file" id="epubFile" accept=".epub">
+    </div>
+
+    <div class="section">
+        <label>2. تعديل بيانات الكتاب الأساسية (اختياري)</label>
+        <input type="text" id="bookTitle" placeholder="عنوان الكتاب الجديد">
+        <input type="text" id="bookAuthor" placeholder="اسم المؤلف الجديد">
+        <input type="text" id="bookLanguage" placeholder="رمز اللغة الجديد (مثل: ar للعربية أو en للإنجليزية)">
+        <p class="info">ملاحظة: تغيير اللغة ضروري لحل مشاكل اتجاه الخطوط والقراءة في بعض الأجهزة.</p>
+    </div>
+
+    <div class="section">
+        <label for="coverFile">3. تغيير صورة الغلاف (اختياري)</label>
+        <input type="file" id="coverFile" accept="image/jpeg, image/png">
+    </div>
+
+    <div class="section">
+        <label for="fontFile">4. إجبار الكتاب على استخدام خط خارجي (اختياري)</label>
+        <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2">
+    </div>
+
+    <button id="processBtn" onclick="processEpub()">✅ تنفيذ التعديلات وتوليد الكتاب الجديد</button>
+    
+    <div id="statusMsg" class="status"></div>
+</div>
+
+<script>
+    // --- الدوال المساعدة (Helper Functions) ---
+
+    function showStatus(msg, type) {
+        const el = document.getElementById('statusMsg');
+        el.innerText = msg;
+        el.className = 'status ' + type;
+        el.style.display = 'block';
+    }
+
+    // دالة لحساب المسار النسبي بدقة بين ملفين
+    function getRelativePath(fromPath, toPath) {
+        const fromParts = fromPath.split('/');
+        const toParts = toPath.split('/');
+        
+        let i = 0;
+        while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) {
+            i++;
+        }
+        
+        let relativePath = '';
+        for (let j = i; j < fromParts.length - 1; j++) {
+            relativePath += '../';
+        }
+        for (let j = i; j < toParts.length; j++) {
+            relativePath += toParts[j] + (j === toParts.length - 1 ? '' : '/');
+        }
+        return relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
+    }
+
+
+    // --- الدالة الرئيسية لمعالجة الملفات ---
+
+    async function processEpub() {
+        const epubInput = document.getElementById('epubFile');
+        const coverInput = document.getElementById('coverFile');
+        const fontInput = document.getElementById('fontFile');
+        const titleInput = document.getElementById('bookTitle').value;
+        const authorInput = document.getElementById('bookAuthor').value;
+        const languageInput = document.getElementById('bookLanguage').value.trim().toLowerCase();
+
+        if (!epubInput.files[0]) {
+            showStatus('الرجاء اختيار ملف EPUB أولاً!', 'error');
+            return;
+        }
+
+        const originalFileName = epubInput.files[0].name;
+
+        const btn = document.getElementById('processBtn');
+        btn.disabled = true;
+        btn.innerText = 'جاري المعالجة... قد يستغرق الأمر بعض الوقت ⏳';
+        showStatus('جاري تحليل وتطبيق التعديلات الذكية...', 'success');
+
+        try {
+            const zip = new JSZip();
+            const epubData = await zip.loadAsync(epubInput.files[0]);
+            const parser = new DOMParser();
+            const serializer = new XMLSerializer();
+            
+            // 1. تحديد المسارات الأساسية
+            const containerXml = await epubData.file("META-INF/container.xml").async("text");
+            const containerDoc = parser.parseFromString(containerXml, "application/xml");
+            const rootfile = containerDoc.querySelector("rootfile");
+            if (!rootfile) throw new Error("ملف EPUB تالف: لا يوجد rootfile");
+            const opfPath = rootfile.getAttribute("full-path");
+            const opfDir = opfPath.substring(0, opfPath.lastIndexOf('/')); 
+            
+            let opfContent = await epubData.file(opfPath).async("text");
+            const opfDoc = parser.parseFromString(opfContent, "application/xml");
+            const dcNs = "http://purl.org/dc/elements/1.1/";
+
+            // 2. تعديل الميتاداتا
+            if (titleInput) {
+                let titleEl = opfDoc.getElementsByTagNameNS(dcNs, "title")[0] || opfDoc.querySelector("metadata > title");
+                if (titleEl) titleEl.textContent = titleInput;
+            }
+            if (authorInput) {
+                const creatorEl = opfDoc.getElementsByTagNameNS(dcNs, "creator")[0];
+                if (creatorEl) creatorEl.textContent = authorInput;
+            }
+
+            // 3. تعديل اللغة (في الميتاداتا)
+            if (languageInput) {
+                let langEl = opfDoc.getElementsByTagNameNS(dcNs, "language")[0];
+                if (langEl) {
+                    langEl.textContent = languageInput;
+                } else {
+                    const meta = opfDoc.getElementsByTagName("metadata")[0];
+                    const newLang = opfDoc.createElementNS(dcNs, "dc:language");
+                    newLang.textContent = languageInput;
+                    meta.appendChild(newLang);
+                }
+            }
+
+            // 4. تغيير الغلاف
+            if (coverInput.files[0]) {
+                const newCoverBlob = coverInput.files[0];
+                let coverItem = opfDoc.querySelector('item[properties~="cover-image"]');
+                
+                if (!coverItem) {
+                    const coverMeta = opfDoc.querySelector('meta[name="cover"]');
+                    if (coverMeta) coverItem = opfDoc.getElementById(coverMeta.getAttribute("content"));
+                }
+                
+                if (!coverItem) {
+                    const items = opfDoc.getElementsByTagName("item");
+                    for(let i=0; i<items.length; i++) {
+                        if(items[i].getAttribute("id")?.toLowerCase().includes("cover") && items[i].getAttribute("href")?.match(/\.(jpg|jpeg|png)$/i)) {
+                            coverItem = items[i];
+                            break;
+                        }
+                    }
+                }
+
+                if (coverItem) {
+                    const href = coverItem.getAttribute("href");
+                    const fullPathCover = opfDir ? opfDir + '/' + href : href;
+                    zip.file(fullPathCover, newCoverBlob);
+                    if (newCoverBlob.type) coverItem.setAttribute("media-type", newCoverBlob.type);
+                }
+            }
+            
+            // 5. تجهيز قائمة ملفات المحتوى (CSS و XHTML)
+            let cssFiles = [];
+            let xhtmlFiles = [];
+            const items = opfDoc.getElementsByTagName("item");
+            for (let i = 0; i < items.length; i++) {
+                const mime = items[i].getAttribute("media-type");
+                const href = items[i].getAttribute("href");
+                if (mime === "text/css") {
+                    cssFiles.push(href);
+                } else if (mime === "application/xhtml+xml" || mime === "text/html") {
+                    xhtmlFiles.push(href);
+                }
+            }
+
+            // 6. تغيير الخط (الحقن المزدوج واللغة في المحتوى)
+            if (fontInput.files[0]) {
+                const fontFile = fontInput.files[0];
+                const fontFileName = "custom-font." + fontFile.name.split('.').pop();
+                const fontsDir = opfDir ? opfDir + "/fonts/" : "fonts/";
+                const fontFullPath = fontsDir + fontFileName;
+                
+                zip.file(fontFullPath, fontFile);
+                
+                const manifest = opfDoc.getElementsByTagName("manifest")[0];
+                const fontItem = opfDoc.createElement("item");
+                fontItem.setAttribute("id", "new-custom-font");
+                fontItem.setAttribute("href", getRelativePath(opfPath, fontFullPath));
+                fontItem.setAttribute("media-type", fontFile.type || "font/opentype");
+                manifest.appendChild(fontItem);
+
+                const fontUrlRelative = getRelativePath(opfDir ? opfDir + '/temp.css' : 'temp.css', fontFullPath); 
+                const fontFaceRule = `@font-face { font-family: 'UserCustomFont'; src: url('${fontUrlRelative}') format('opentype'), url('${fontUrlRelative}') format('truetype'); font-weight: normal; font-style: normal; } body, p, div, span, h1, h2, h3, h4, h5, h6, a, li, blockquote, dd, dt { font-family: 'UserCustomFont', sans-serif !important; line-height: 1.7 !important; }`;
+
+                for (let cssHref of cssFiles) {
+                    const fullCssPath = opfDir ? opfDir + '/' + cssHref : cssHref;
+                    let cssContent = await zip.file(fullCssPath)?.async("text");
+                    if (cssContent) {
+                        const fontUrl = getRelativePath(fullCssPath, fontFullPath);
+                        let finalFontFaceRule = fontFaceRule.replace(fontUrlRelative, fontUrl);
+                        zip.file(fullCssPath, finalFontFaceRule + "\n" + cssContent);
+                    }
+                }
+                
+                const styleToInject = `<style type="text/css">${fontFaceRule}</style>`;
+                for (let xhtmlHref of xhtmlFiles) {
+                    const fullXhtmlPath = opfDir ? opfDir + '/' + xhtmlHref : xhtmlHref;
+                    let xhtmlContent = await zip.file(fullXhtmlPath)?.async("text");
+
+                    if (xhtmlContent) {
+                        const xhtmlDoc = parser.parseFromString(xhtmlContent, "application/xml");
+                        const htmlEl = xhtmlDoc.querySelector('html');
+                        const headEl = xhtmlDoc.querySelector('head');
+                        const bodyEl = xhtmlDoc.querySelector('body');
+                        
+                        if (htmlEl && languageInput) {
+                            htmlEl.setAttribute('lang', languageInput);
+                            htmlEl.setAttribute('xml:lang', languageInput);
+                        }
+                        
+                        if (headEl) {
+                            let finalStyle = styleToInject.replace(fontUrlRelative, getRelativePath(fullXhtmlPath, fontFullPath));
+                            headEl.insertAdjacentHTML('beforeend', finalStyle);
+                        }
+                        
+                        if (bodyEl) {
+                            bodyEl.setAttribute('style', "font-family: 'UserCustomFont', sans-serif !important;");
+                        }
+
+                        zip.file(fullXhtmlPath, serializer.serializeToString(xhtmlDoc));
+                    }
+                }
+            }
+            
+            // 7. حفظ ملف OPF النهائي
+            const newOpfContent = serializer.serializeToString(opfDoc);
+            zip.file(opfPath, newOpfContent);
+
+            // 8. إنشاء الملف وتحميله (✨ التعديل الحاسم هنا)
+            
+            // نجبر JSZip على إخراج البيانات بنوع EPUB+ZIP MIME Type
+            const content = await zip.generateAsync({
+                type:"blob",
+                mimeType: "application/epub+zip" // هذا هو المفتاح لمنع المتصفح من افتراض أنه zip عادي
+            });
+            
+            // 9. تنظيف الاسم النهائي
+            let finalFileName = originalFileName;
+            
+            // تنظيف أي امتدادات متبقية قد تكون أضيفت سابقاً
+            finalFileName = finalFileName.replace(/\.(epub|zip|rar|tar)$/gi, ''); 
+            
+            // إضافة الامتداد الصحيح
+            finalFileName = finalFileName + '.epub';
+            
+            saveAs(content, finalFileName);
+
+            showStatus('تم بنجاح! ✅ اكتمل التحرير وبدأ تحميل الكتاب.', 'success');
+
+        } catch (e) {
+            console.error(e);
+            showStatus(`حدث خطأ فادح أثناء المعالجة: ${e.message}. تأكد أن الملف ليس محمياً أو تالفاً.`, 'error');
+
+        } finally {
+            // إعادة تفعيل الزر
+            btn.innerText = '✅ تنفيذ التعديلات وتوليد الكتاب الجديد';
+            btn.disabled = false;
+        }
+    }
+</script>
+
+</body>
+</html>
