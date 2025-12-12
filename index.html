@@ -400,6 +400,11 @@
             if (!metadataEl || !manifestEl || !spineEl) {
                 throw new Error("ملف OPF تالف: مفقود عنصر metadata أو manifest أو spine.");
             }
+            
+            // **الحل للخطأ: تعريف المتغيرات هنا لضمان الوصول إليها لاحقاً**
+            let oldCoverHref = null; 
+            let coverPageHref = null; 
+            // -----------------------------------------------------------------
 
             // 2. تطبيق تعديلات الميتاداتا (العنوان، المؤلف، اللغة)
 
@@ -437,9 +442,7 @@
                 const coverFullPath = imagesDir + coverFileName;
 
                 // --- البحث عن العناصر القديمة للحذف والتعديل ---
-                let oldCoverHref = null; // رابط صورة الغلاف القديمة (للحذف)
-                let coverPageHref = null; // رابط صفحة الغلاف الداخلية XHTML (للتعديل)
-
+                
                 // 3.1. تحديد صورة الغلاف القديمة (من properties="cover-image")
                 const oldCoverItem = opfDoc.querySelector('item[properties~="cover-image"]');
                 if (oldCoverItem) {
@@ -540,10 +543,11 @@
                             if (styleEl && styleEl.textContent.includes('background-image')) {
                                 // استبدال مسارات الصور القديمة في الـ CSS
                                 const cssContent = styleEl.textContent;
-                                // البحث عن أي URL يشير لملف صورة (لنفترض أن القديم كان في نفس المجلد أو مجلدات قريبة)
+                                
+                                // محاولة استبدال أي رابط صورة داخل الـ CSS (حل غير مثالي لكنه ضروري)
+                                // سنبحث عن أي مسار ينتهي بـ (jpg|jpeg|png|gif)
                                 const newCssContent = cssContent.replace(/url\(['"]?(.+?)['"]?\)/gi, (match, p1) => {
                                     if (p1.match(/\.(jpg|jpeg|png|gif)/i)) {
-                                        // هذا ليس مضمونًا لكنه محاولة قوية
                                         return `url('${relativeCoverPath}')`;
                                     }
                                     return match;
