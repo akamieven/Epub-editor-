@@ -8,14 +8,27 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         :root { --primary: #10b981; /* لون أخضر */ --bg: #f3f4f6; --card: #ffffff; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: #1f2937; margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 10vh; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: var(--bg); 
+            color: #1f2937; 
+            margin: 0; 
+            padding: 20px; 
+            /* **التعديل هنا:** استخدام Flexbox مع اتجاه عمودي للتوسيط والترتيب */
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; /* لتوسيط المحتوى أفقياً */
+            min-height: 100vh; /* لضمان ملء الشاشة عمودياً */
+        }
         .container { 
             background-color: var(--card); 
             padding: 2.5rem; 
             border-radius: 15px; 
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); 
-            width: 100%; 
+            /* **التعديل هنا:** إزالة width: 100%; إذا كان سيتعارض مع التوسيط */
             max-width: 700px;
+            /* **التعديل هنا:** للتأكيد على التوسيط الأفقي وضبط الهوامش */
+            margin: 20px auto; 
             animation: fadeIn 0.5s ease-out;
         }
         @keyframes fadeIn {
@@ -90,10 +103,31 @@
             /* الخط الأساسي للمعاينة قبل التحميل */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
         }
+        /* تنسيق زر الانتقال */
+        .txt-cleaner-button-wrapper {
+            /* **التعديل هنا:** تم إزالة التوسيط اليدوي حيث أصبح body يقوم به */
+            margin-top: 40px; 
+            padding-bottom: 20px; /* إضافة مسافة سفلية */
+            width: 100%; 
+            max-width: 700px; /* ليتطابق عرضه مع عرض الـ container تقريباً */
+        }
+        .txt-cleaner-button {
+            background: #8BC34A; 
+            color: #fff; 
+            padding: 12px 25px; 
+            border-radius: 8px; 
+            border: none; 
+            font-size: 16px; 
+            cursor: pointer;
+            display: block; /* ليتصرف ككتلة ويملأ المساحة المتاحة */
+            margin: 0 auto; /* للتوسيط الذاتي إذا لزم الأمر */
+            max-width: 300px; /* يمكن تحديد عرض أصغر للزر نفسه */
+        }
+
     </style>
 </head>
 <body>
-    
+
 <div class="container">
     <h1>📚محرر epub</h1>
     <p class="info" style="text-align: center; font-size: 1rem; color: var(--primary);">أداة لتعديل بيانات، غلاف، وخطوط أي كتاب EPUB.</p>
@@ -144,13 +178,13 @@
         </div>
     </div>
     <button id="processBtn" onclick="processEpub()">✅ تنفيذ التعديلات وتوليد الكتاب الجديد</button>
-    
+
     <div id="statusMsg" class="status"></div>
 </div>
-<div style="text-align: center; margin-top: 40px;">
+<div class="txt-cleaner-button-wrapper"> 
     <button 
         onclick="window.location.href='TXTCLEANER.html'" 
-        style="background: #8BC34A; color: #fff; padding: 12px 25px; border-radius: 8px; border: none; font-size: 16px; cursor: pointer;">
+        class="txt-cleaner-button">
         الانتقال إلى أداة TXT Cleaner
     </button>
 </div>
@@ -168,12 +202,12 @@
     function getRelativePath(fromPath, toPath) {
         const fromParts = fromPath.split('/');
         const toParts = toPath.split('/');
-        
+
         let i = 0;
         while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) {
             i++;
         }
-        
+
         let relativePath = '';
         for (let j = i; j < fromParts.length - 1; j++) {
             relativePath += '../';
@@ -190,7 +224,7 @@
         const container = document.getElementById('fontPreviewContainer');
         const textAr = document.getElementById('fontPreviewTextAr');
         const textEn = document.getElementById('fontPreviewTextEn');
-        
+
         if (!fontInput.files[0]) {
             container.style.display = 'none';
             // إعادة تعيين الخطوط إلى الافتراضي عند إزالة الملف
@@ -211,7 +245,7 @@
         // 1. إزالة أي نمط (Style) تم إنشاؤه سابقاً
         const oldStyle = document.getElementById('live-font-style');
         if (oldStyle) oldStyle.remove();
-        
+
         // 2. إنشاء قاعدة @font-face جديدة
         const style = document.createElement('style');
         style.id = 'live-font-style';
@@ -267,7 +301,7 @@
             const epubData = await zip.loadAsync(epubInput.files[0]);
             const parser = new DOMParser();
             const serializer = new XMLSerializer();
-            
+
             // 1. تحديد المسارات الأساسية
             const containerXml = await epubData.file("META-INF/container.xml").async("text");
             const containerDoc = parser.parseFromString(containerXml, "application/xml");
@@ -275,7 +309,7 @@
             if (!rootfile) throw new Error("ملف EPUB تالف: لا يوجد rootfile");
             const opfPath = rootfile.getAttribute("full-path");
             const opfDir = opfPath.substring(0, opfPath.lastIndexOf('/')); 
-            
+
             let opfContent = await epubData.file(opfPath).async("text");
             const opfDoc = parser.parseFromString(opfContent, "application/xml");
             const dcNs = "http://purl.org/dc/elements/1.1/";
@@ -307,12 +341,12 @@
             if (coverInput.files[0]) {
                 const newCoverBlob = coverInput.files[0];
                 let coverItem = opfDoc.querySelector('item[properties~="cover-image"]');
-                
+
                 if (!coverItem) {
                     const coverMeta = opfDoc.querySelector('meta[name="cover"]');
                     if (coverMeta) coverItem = opfDoc.getElementById(coverMeta.getAttribute("content"));
                 }
-                
+
                 if (!coverItem) {
                     const items = opfDoc.getElementsByTagName("item");
                     for(let i=0; i<items.length; i++) {
@@ -330,7 +364,7 @@
                     if (newCoverBlob.type) coverItem.setAttribute("media-type", newCoverBlob.type);
                 }
             }
-            
+
             // 5. تجهيز قائمة ملفات المحتوى (CSS و XHTML)
             let cssFiles = [];
             let xhtmlFiles = [];
@@ -346,22 +380,22 @@
             }
 
             // 6. تغيير الخط وتطبيق الاتجاه في المحتوى
-            
+
             // إعداد قاعدة الخط الأساسية (إذا تم إدخال خط)
             let fontFaceRule = null;
             let fontUrlRelative = null;
             // المتغيرات مُعرَّفة بالخارج (Fix for fontFullPath is not defined)
             let fontFile = null;
             let fontFullPath = null; 
-            
+
             if (fontInput.files[0]) {
                 fontFile = fontInput.files[0]; 
                 const fontFileName = "custom-font." + fontFile.name.split('.').pop();
                 const fontsDir = opfDir ? opfDir + "/fonts/" : "fonts/";
                 fontFullPath = fontsDir + fontFileName; 
-                
+
                 zip.file(fontFullPath, fontFile);
-                
+
                 const manifest = opfDoc.getElementsByTagName("manifest")[0];
                 const fontItem = opfDoc.createElement("item");
                 fontItem.setAttribute("id", "new-custom-font");
@@ -370,7 +404,7 @@
                 manifest.appendChild(fontItem);
 
                 fontUrlRelative = getRelativePath(opfDir ? opfDir + '/temp.css' : 'temp.css', fontFullPath); 
-                
+
                 // **** التعديل لزيادة قوة النمط (إضافة المُحدّد الشامل *) ****
                 fontFaceRule = `@font-face { font-family: 'UserCustomFont'; src: url('${fontUrlRelative}') format('opentype'), url('${fontUrlRelative}') format('truetype'); font-weight: normal; font-style: normal; } *, body, p, div, span, h1, h2, h3, h4, h5, h6, a, li, blockquote, dd, dt { font-family: 'UserCustomFont', sans-serif !important; line-height: 1.7 !important; }`;
                 // ******************************************************
@@ -386,10 +420,10 @@
                     }
                 }
             }
-            
+
             // الحقن في ملفات XHTML (للاتجاه والخط)
             const fontStyleToInject = fontFaceRule ? `<style type="text/css">${fontFaceRule}</style>` : '';
-            
+
             for (let xhtmlHref of xhtmlFiles) {
                 const fullXhtmlPath = opfDir ? opfDir + '/' + xhtmlHref : xhtmlHref;
                 let xhtmlContent = await zip.file(fullXhtmlPath)?.async("text");
@@ -399,7 +433,7 @@
                     const htmlEl = xhtmlDoc.querySelector('html');
                     const headEl = xhtmlDoc.querySelector('head');
                     const bodyEl = xhtmlDoc.querySelector('body');
-                    
+
                     // تطبيق اللغة في وسم html
                     if (htmlEl && languageInput) {
                         htmlEl.setAttribute('lang', languageInput);
@@ -409,7 +443,7 @@
                     // تطبيق اتجاه النص (RTL/LTR)
                     if (bodyEl && textDirection !== 'none') {
                         const align = textDirection === 'rtl' ? 'justify' : 'left';
-                        
+
                         // تطبيق السمة dir على body
                         bodyEl.setAttribute('dir', textDirection);
 
@@ -430,7 +464,7 @@
                     if (fontFaceRule && headEl && bodyEl) {
                         // الآن، fontFullPath و fontUrlRelative مُعرَّفان (وليس undefined) لأن fontFaceRule حقيقية
                         let finalFontStyle = fontStyleToInject.replace(fontUrlRelative, getRelativePath(fullXhtmlPath, fontFullPath));
-                        
+
                         // تجنب حقن النمط إذا كان موجوداً بالفعل (كإجراء احترازي)
                         if (!headEl.innerHTML.includes('UserCustomFont')) {
                             headEl.insertAdjacentHTML('beforeend', finalFontStyle);
@@ -442,7 +476,7 @@
                     zip.file(fullXhtmlPath, serializer.serializeToString(xhtmlDoc));
                 }
             }
-            
+
             // 7. حفظ ملف OPF النهائي
             const newOpfContent = serializer.serializeToString(opfDoc);
             zip.file(opfPath, newOpfContent);
@@ -452,12 +486,12 @@
                 type:"blob",
                 mimeType: "application/epub+zip"
             });
-            
+
             // 9. تنظيف الاسم النهائي
             let finalFileName = originalFileName;
             finalFileName = finalFileName.replace(/\.(epub|zip|rar|tar)$/gi, ''); 
             finalFileName = finalFileName + '.epub';
-            
+
             saveAs(content, finalFileName);
 
             showStatus('تم بنجاح! ✅ اكتمل التحرير وبدأ تحميل الكتاب.', 'success');
