@@ -612,7 +612,7 @@
                 mimeType: "application/epub+zip"
             });
 
-            let finalFileName = originalFileName.replace(/\.(epub|zip|rar|tar)$/gi, '') + '_edited.epub';
+            let finalFileName = originalFileName.replace(/\.(epub|zip|rar|tar)$/gi, '') + '.epub';
             saveAs(content, finalFileName);
 
             showStatus('تم بنجاح! ✅ اكتمل التحرير وبدأ تحميل الكتاب.', 'success');
